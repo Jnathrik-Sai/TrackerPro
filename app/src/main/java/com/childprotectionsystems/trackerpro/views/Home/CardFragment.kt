@@ -6,7 +6,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BatteryFull
 import androidx.compose.material.icons.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.Icon
@@ -38,7 +37,8 @@ fun CardFragment(
         modifier = modifier
             .height(80.dp),
         shape = shape,
-        tonalElevation = 2.dp
+        tonalElevation = 2.dp,
+        color = Color(0xFFFFFAF0)
     ) {
         Box {
             Box(
@@ -70,7 +70,7 @@ fun CardFragment(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .background(color = MaterialTheme.colorScheme.primary, shape = CircleShape),
+                        .background(color = Color.Gray, shape = CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -81,7 +81,6 @@ fun CardFragment(
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                // Main info column
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -102,13 +101,25 @@ fun CardFragment(
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.BatteryFull,
-                            contentDescription = "Battery Icon",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(40.dp)
+                                .height(10.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(Color.LightGray)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth(batteryPercent / 100f)
+                                    .background(
+                                        if (batteryPercent > 50) Color(0xFF4CAF50)
+                                        else if (batteryPercent > 20) Color(0xFFFFC107)
+                                        else Color(0xFFF44336)
+                                    )
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "$batteryPercent%",
                             style = MaterialTheme.typography.bodyMedium,

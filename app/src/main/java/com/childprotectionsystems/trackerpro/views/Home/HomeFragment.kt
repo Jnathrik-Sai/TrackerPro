@@ -70,7 +70,6 @@ fun FavoritesSection() {
     var expanded by remember { mutableStateOf(true) }
 
     Column {
-        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -114,7 +113,7 @@ fun FavoritesSection() {
             ) {
                 repeat(10) { index ->
                     Box(
-                        modifier = Modifier.size(80.dp),
+                        modifier = Modifier.size(60.dp),
                         contentAlignment = Alignment.BottomEnd
                     ) {
                         Surface(
@@ -136,9 +135,9 @@ fun FavoritesSection() {
                             color = Color.White,
                             tonalElevation = 2.dp,
                             modifier = Modifier
-                                .size(20.dp)
+                                .size(15.dp)
                                 .align(Alignment.BottomEnd)
-                                .offset(x = (-4).dp, y = (-4).dp)
+                                .offset(x = (-3).dp, y = (-3).dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Phone,

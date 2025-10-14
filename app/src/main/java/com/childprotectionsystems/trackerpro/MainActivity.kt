@@ -18,7 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.childprotectionsystems.trackerpro.data.BottomNavigationItem
+import com.childprotectionsystems.trackerpro.model.BottomNavigationItem
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
 import com.childprotectionsystems.trackerpro.ui.theme.TrackerProTheme
@@ -91,7 +91,6 @@ class MainActivity : ComponentActivity() {
 
                 var selectedItemIndex by rememberSaveable { mutableStateOf(0) }
 
-                // Sync bottom bar selection with NavController
                 LaunchedEffect(currentRoute) {
                     items.indexOfFirst { it.title == currentRoute }.takeIf { it != -1 }?.let {
                         selectedItemIndex = it
@@ -103,7 +102,7 @@ class MainActivity : ComponentActivity() {
                     gesturesEnabled = currentRoute == "Home",
                     drawerContent = {
                         val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-                        val drawerWidth = screenWidth * 0.6f
+                        val drawerWidth = screenWidth * 0.7f
 
                         ModalDrawerSheet(
                             modifier = Modifier.width(drawerWidth)
@@ -168,12 +167,15 @@ class MainActivity : ComponentActivity() {
                                                     imageVector = if (selectedItemIndex == index)
                                                         item.selectedIcon else item.unselectedIcon,
                                                     contentDescription = item.title,
-                                                    tint = if (selectedItemIndex == index)
-                                                        MaterialTheme.colorScheme.primary else Color.Gray,
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                             }
-                                        }
+                                        },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            indicatorColor = Color(0xFFFFFAF0), // light skin tone for selected tab circle
+                                            selectedIconColor = Color(0xFF3E2723), // dark brown shade for selected icon
+                                            unselectedIconColor = Color(0xFF5D4037) // medium dark brown for unselected icons
+                                        )
                                     )
                                 }
                             }

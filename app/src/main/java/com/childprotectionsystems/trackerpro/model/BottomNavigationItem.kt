@@ -1,6 +1,5 @@
-package com.childprotectionsystems.trackerpro.data
+package com.childprotectionsystems.trackerpro.model
 
-import android.icu.text.CaseMap
 import androidx.compose.ui.graphics.vector.ImageVector
 
 data class BottomNavigationItem(
