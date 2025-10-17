@@ -15,16 +15,23 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MyLocation
@@ -40,6 +47,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -55,6 +63,8 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import kotlin.math.roundToInt
+import androidx.compose.runtime.mutableStateListOf
 
 
 @Composable
@@ -65,9 +75,14 @@ fun Geofences() {
     }
 
     var selectedColor by remember { mutableStateOf(Color.Red) }
-    var radius by remember { mutableFloatStateOf(500f) }
+    var radius by remember { mutableFloatStateOf(100f) }
     var menuVisible by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
+
+    var geofenceList by remember {
+        mutableStateOf(listOf("School Zone", "Home Area", "Playground","College"))
+    }
+    var expandedIndex by remember { mutableIntStateOf(-1) }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -126,7 +141,10 @@ fun Geofences() {
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
                                 .padding(6.dp)
-                                .clickable { menuVisible = !menuVisible }
+                                .clickable {
+                                    menuVisible = !menuVisible
+                                    if (menuVisible) radius = 1f
+                                }
                         )
                     },
                     trailingIcon = {
@@ -154,75 +172,239 @@ fun Geofences() {
                         .padding(top = 8.dp),
                     contentAlignment = Alignment.TopEnd
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .widthIn(min = 220.dp, max = 300.dp) // limit width, not too wide
-                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
-                            .padding(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowForward,
-                                contentDescription = "Forward",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(4.dp)
-                            )
-                        }
+                    val scrollState = rememberScrollState()
+                    var step by remember { mutableIntStateOf(1) }
+                    var nameText by remember { mutableStateOf("") }
+                    var nameTouched by remember { mutableStateOf(false) }
+
+                    if (step == 1) {
                         Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp),
+                                .align(Alignment.TopEnd)
+                                .widthIn(min = 220.dp, max = 300.dp)
+                                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                                .padding(12.dp)
+                                .verticalScroll(scrollState),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            var nameText by remember { mutableStateOf("") }
-                            TextField(
-                                value = nameText,
-                                onValueChange = { nameText = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                shape = RoundedCornerShape(50),
-                                placeholder = { Text("Name") },
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                    disabledIndicatorColor = Color.Transparent
-                                )
-                            )
-                            Text(
-                                text = "Radius: ${radius.toInt()} meters",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                            Slider(
-                                value = radius,
-                                onValueChange = { radius = it },
-                                valueRange = 100f..2000f,
-                                modifier = Modifier.fillMaxWidth()
-                            )
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.padding(top = 8.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                val colors = listOf(Color.Red, Color.Green, Color.Blue)
-                                colors.forEach { color ->
-                                    Surface(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(40.dp),
-                                        shape = CircleShape,
-                                        color = color,
-                                        border = if (selectedColor == color) BorderStroke(2.dp, Color.Black) else null,
-                                        onClick = { selectedColor = color }
-                                    ) {}
+                                Button(
+                                    onClick = {
+                                        if (nameText.isBlank()) {
+                                            nameTouched = true
+                                        } else {
+                                            step = 2
+                                        }
+                                    },
+                                    enabled = nameText.isNotBlank(),
+                                    shape = RoundedCornerShape(50),
+                                    modifier = Modifier.height(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = "Forward"
+                                    )
                                 }
+                            }
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                TextField(
+                                    value = nameText,
+                                    onValueChange = { newValue ->
+                                        if (!newValue.startsWith(" ")) nameText = newValue
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(50),
+                                    placeholder = { Text("Name") },
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        focusedIndicatorColor = if (nameText.isBlank() && nameTouched) Color.Red else Color.Transparent,
+                                        unfocusedIndicatorColor = if (nameText.isBlank() && nameTouched) Color.Red else Color.Transparent,
+                                        disabledIndicatorColor = Color.Transparent
+                                    )
+                                )
+                                Text(
+                                    text = "Radius: ${radius.toInt()} meters",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                                Slider(
+                                    value = radius,
+                                    onValueChange = { radius = it },
+                                    valueRange = 1f..2000f,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(16.dp)
+                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "Tag:",
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    val tagColors = listOf(
+                                        Color(0xFF8B0000),
+                                        Color(0xFFB8860B),
+                                        Color(0xFF006400)
+                                    )
+                                    if (selectedColor !in tagColors) {
+                                        selectedColor = Color(0xFF006400)
+                                    }
+                                    tagColors.forEach { color ->
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clickable { selectedColor = color },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Surface(
+                                                modifier = Modifier.matchParentSize(),
+                                                shape = CircleShape,
+                                                color = if (selectedColor == color) color else Color.Transparent,
+                                                border = BorderStroke(2.dp, color)
+                                            ) {}
+                                            if (selectedColor == color) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Selected",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (step == 2) {
+                        val itemsList = listOf("On Enter", "On Exit", "Alert Message")
+                        val itemCompleted = remember { mutableStateListOf(*Array(itemsList.size) { false }) }
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .widthIn(min = 220.dp, max = 300.dp)
+                                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                                .padding(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Button(
+                                    onClick = { step = 3 },
+                                    shape = RoundedCornerShape(50),
+                                    modifier = Modifier.height(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = "Forward"
+                                    )
+                                }
+                            }
+                            Text("Choose a Geofence Trigger", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+                            var alertDuration by remember { mutableFloatStateOf(15f) }
+                            LazyColumn {
+                                itemsIndexed(itemsList) { index, item ->
+                                    when(item) {
+                                        "On Enter", "On Exit" -> {
+                                            var isEnabled by remember { mutableStateOf(false) }
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(12.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(item)
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    androidx.compose.material3.Switch(
+                                                        checked = isEnabled,
+                                                        onCheckedChange = {
+                                                            isEnabled = it
+                                                            itemCompleted[index] = it
+                                                        }
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    // Completion dot
+                                                    Surface(
+                                                        modifier = Modifier.size(12.dp),
+                                                        shape = CircleShape,
+                                                        color = if (itemCompleted[index]) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                                                    ) {}
+                                                }
+                                            }
+                                        }
+                                        "Alert Message" -> {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(12.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(item)
+                                                    Surface(
+                                                        modifier = Modifier.size(12.dp),
+                                                        shape = CircleShape,
+                                                        color = if (itemCompleted[index]) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                                                    ) {}
+                                                }
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                Text(
+                                                    text = "Alert for every: ${alertDuration.toInt()} mins",
+                                                    style = MaterialTheme.typography.bodyMedium
+                                                )
+                                                Slider(
+                                                    value = alertDuration,
+                                                    onValueChange = {
+                                                        alertDuration = (it / 5).roundToInt() * 5f
+                                                    },
+                                                    valueRange = 5f..60f,
+                                                    steps = 10
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (step == 3) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .widthIn(min = 220.dp, max = 300.dp)
+                                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                                .padding(12.dp)
+                        ) {
+                            item {
+                                CreateFenceFormView(geofences = geofenceList)
                             }
                         }
                     }
@@ -231,7 +413,6 @@ fun Geofences() {
         }
 
         var expanded by remember { mutableStateOf(false) }
-        val geofenceList = listOf("School Zone", "Home Area", "Playground", "Restricted Zone")
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -295,45 +476,36 @@ fun Geofences() {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            if (geofenceList.isNotEmpty()) {
-                item {
-                    AnimatedVisibility(
-                        visible = expanded,
-                        enter = expandVertically(),
-                        exit = shrinkVertically()
+            item {
+                AnimatedVisibility(
+                    visible = expanded,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    Surface(
+                        color = Color.White,
+                        shape = RoundedCornerShape(16.dp),
+                        tonalElevation = 2.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(24.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            tonalElevation = 2.dp,
-                            shadowElevation = 2.dp,
+                        LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp)
+                                .heightIn(max = 200.dp)
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                geofenceList.forEach { item ->
-                                    Surface(
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                                        tonalElevation = 4.dp,
-                                        shadowElevation = 4.dp,
-                                        border = BorderStroke(1.dp, Color.Blue),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 12.dp, vertical = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = item,
-                                            modifier = Modifier.padding(16.dp),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                }
+                            items(geofenceList.size) { index ->
+                                val name = geofenceList[index]
+                                GeofenceCardItem(
+                                    name = name,
+                                    expanded = index == expandedIndex,
+                                    onCardClick = { expandedIndex = if (expandedIndex == index) -1 else index },
+                                    onEditClick = { println("Edit clicked for $name") },
+                                    onGeofenceClick = { println("Geofences clicked for $name") }
+                                )
                             }
                         }
                     }
