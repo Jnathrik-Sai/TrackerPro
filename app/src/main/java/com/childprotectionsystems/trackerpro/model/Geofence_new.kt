@@ -6,5 +6,6 @@ data class Geofence_new(
     val tag: String,
     val onEnter: Boolean,
     val onExit: Boolean,
+    val timer: Float,
     val trackerAgent: String
 )

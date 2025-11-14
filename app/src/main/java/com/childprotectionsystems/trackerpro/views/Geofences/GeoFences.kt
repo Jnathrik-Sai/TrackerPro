@@ -1,5 +1,7 @@
 package com.childprotectionsystems.trackerpro.views.Geofences
 
+import com.childprotectionsystems.trackerpro.model.Geofence_new
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -65,6 +67,8 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlin.math.roundToInt
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.wrapContentSize
 
 
 @Composable
@@ -78,6 +82,15 @@ fun Geofences() {
     var radius by remember { mutableFloatStateOf(100f) }
     var menuVisible by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
+
+    // State variables for geofence creation
+    var geofenceName by remember { mutableStateOf("") }
+    var geofenceRadius by remember { mutableFloatStateOf(100f) }
+    var geofenceTag by remember { mutableStateOf("") }
+    var geofenceOnEnter by remember { mutableStateOf(false) }
+    var geofenceOnExit by remember { mutableStateOf(false) }
+    var geofenceTimer by remember { mutableFloatStateOf(15f) }
+    var geofenceTrackerAgent by remember { mutableStateOf("DefaultAgent") }
 
     var geofenceList by remember {
         mutableStateOf(listOf("School Zone", "Home Area", "Playground","College"))
@@ -102,18 +115,27 @@ fun Geofences() {
                 rotationGesturesEnabled = true
             )
         ) {
-            Marker(
-                state = MarkerState(position = singapore),
-                title = "Singapore",
-                snippet = "Marker in Singapore"
-            )
-            Circle(
-                center = singapore,
-                radius = radius.toDouble(),
-                fillColor = selectedColor.copy(alpha = 0.3f),
-                strokeColor = selectedColor,
-                strokeWidth = 2f
-            )
+            geofenceList.forEachIndexed { index, name ->
+                val markerState = remember { MarkerState(position = LatLng(1.35 + index * 0.01, 103.87)) }
+                Marker(
+                    state = markerState,
+                    title = name,
+                    snippet = "Radius: 100m",
+                    onClick = {
+                        expandedIndex = if (expandedIndex == index) -1 else index
+                        true
+                    }
+                )
+            }
+            geofenceList.forEach { name ->
+                Circle(
+                    center = LatLng(1.35, 103.87),
+                    radius = 100.0,
+                    fillColor = Color.Blue.copy(alpha = 0.3f),
+                    strokeColor = Color.Blue,
+                    strokeWidth = 2f
+                )
+            }
         }
 
         Column(
@@ -197,6 +219,9 @@ fun Geofences() {
                                         if (nameText.isBlank()) {
                                             nameTouched = true
                                         } else {
+                                            geofenceName = nameText
+                                            geofenceRadius = radius
+                                            geofenceTag = selectedColor.toString()
                                             step = 2
                                         }
                                     },
@@ -322,7 +347,7 @@ fun Geofences() {
                                 }
                             }
                             Text("Choose a Geofence Trigger", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
-                            var alertDuration by remember { mutableFloatStateOf(15f) }
+                            var alertDuration by remember { mutableStateOf(15f) } // default 15 mins
                             LazyColumn {
                                 itemsIndexed(itemsList) { index, item ->
                                     when(item) {
@@ -342,6 +367,9 @@ fun Geofences() {
                                                         onCheckedChange = {
                                                             isEnabled = it
                                                             itemCompleted[index] = it
+                                                            // Update geofence trigger state variables
+                                                            if (item == "On Enter") geofenceOnEnter = it
+                                                            if (item == "On Exit") geofenceOnExit = it
                                                         }
                                                     )
                                                     Spacer(modifier = Modifier.width(8.dp))
@@ -367,6 +395,7 @@ fun Geofences() {
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
                                                     Text(item)
+                                                    // Completion dot
                                                     Surface(
                                                         modifier = Modifier.size(12.dp),
                                                         shape = CircleShape,
@@ -382,7 +411,10 @@ fun Geofences() {
                                                 Slider(
                                                     value = alertDuration,
                                                     onValueChange = {
+                                                        // Snap to nearest 5
                                                         alertDuration = (it / 5).roundToInt() * 5f
+                                                        // Update geofence timer state variable
+                                                        geofenceTimer = alertDuration
                                                     },
                                                     valueRange = 5f..60f,
                                                     steps = 10
@@ -396,16 +428,75 @@ fun Geofences() {
                     }
 
                     if (step == 3) {
-                        LazyColumn(
+                        Column(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .widthIn(min = 220.dp, max = 300.dp)
                                 .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
                                 .padding(12.dp)
+                                .heightIn(min = 300.dp, max = 400.dp)
                         ) {
-                            item {
-                                CreateFenceFormView(geofences = geofenceList)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(100.dp), // Capsule shape
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .wrapContentWidth()
+                                        .height(28.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .wrapContentSize()
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                        horizontalArrangement = Arrangement.End,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Completed",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
                             }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            val placeholderCount = 4
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 300.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(placeholderCount) {
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(80.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        tonalElevation = 2.dp
+                                    ) {}
+                                }
+                            }
+
+                            val newGeofence = Geofence_new(
+                                name = geofenceName,
+                                radius = geofenceRadius,
+                                tag = geofenceTag,
+                                onEnter = geofenceOnEnter,
+                                onExit = geofenceOnExit,
+                                timer = geofenceTimer,
+                                trackerAgent = geofenceTrackerAgent
+                            )
+                            println("Created Geofence: $newGeofence")
                         }
                     }
                 }

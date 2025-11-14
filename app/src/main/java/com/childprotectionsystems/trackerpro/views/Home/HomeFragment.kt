@@ -1,3 +1,4 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
 package com.childprotectionsystems.trackerpro.views.Home
 
 import androidx.compose.animation.AnimatedVisibility
@@ -20,7 +21,12 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,35 +38,54 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
 
 @Composable
 fun HomeFragment(openDrawer: () -> Unit = {}) {
     val backgroundColor = Color.White
+    var showAddTracker by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundColor)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(backgroundColor)
-                .statusBarsPadding()
-                .padding(vertical = 8.dp),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            SearchBar(onMenuClick = openDrawer)
-        }
 
         Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-                .animateContentSize(animationSpec = tween(durationMillis = 300))
+            modifier = Modifier.fillMaxSize()
         ) {
-            FavoritesSection()
-            TrackersSection()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(backgroundColor)
+                    .statusBarsPadding()
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                SearchBar(onMenuClick = openDrawer)
+            }
+
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+                    .animateContentSize(animationSpec = tween(durationMillis = 300))
+            ) {
+                FavoritesSection()
+                TrackersSection(onAddTrackerClick = { showAddTracker = true })
+            }
+        }
+
+        if (showAddTracker) {
+            ModalBottomSheet(
+                onDismissRequest = { showAddTracker = false },
+                sheetState = sheetState,
+                containerColor = Color.White,
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+            ) {
+                AddtrackerView(onClose = { showAddTracker = false })
+            }
         }
     }
 }
@@ -156,18 +181,51 @@ fun FavoritesSection() {
 }
 
 @Composable
-fun TrackersSection(trackers: List<String> = List(5) { "Tracker ${it + 1}" }) {
+fun TrackersSection(
+    trackers: List<String> = List(5) { "Tracker ${it + 1}" },
+    onAddTrackerClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 24.dp)
     ) {
-        Text(
-            text = "Trackers",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Trackers",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.LightGray,
+                modifier = Modifier
+                    .height(32.dp)
+                    .padding(end = 4.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { onAddTrackerClick() }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "+",
+                        color = Color.DarkGray,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -222,12 +280,25 @@ fun SearchBar(onMenuClick: () -> Unit = {}) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Filled.Menu,
-                    contentDescription = "Menu",
-                    tint = Color.Gray
-                )
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.Transparent,
+                shadowElevation = 0.dp,
+                modifier = Modifier
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { onMenuClick() }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Menu,
+                        contentDescription = "Menu",
+                        tint = Color.Gray
+                    )
+                }
             }
 
             Box(

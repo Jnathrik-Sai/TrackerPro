@@ -1,6 +1,5 @@
 package com.childprotectionsystems.trackerpro.views.Geofences
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,14 +15,12 @@ fun CreateFenceFormView(geofences: List<String>) {
             .padding(horizontal = 16.dp)
     ) {
         geofences.forEach { geofence ->
-            var expanded by remember { mutableStateOf(false) }
             var checked by remember { mutableStateOf(false) }
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp)
-                    .clickable { expanded = !expanded },
+                    .padding(vertical = 6.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
@@ -49,19 +46,6 @@ fun CreateFenceFormView(geofences: List<String>) {
                             checked = checked,
                             onCheckedChange = { checked = it }
                         )
-                    }
-
-                    if (expanded) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { /* TODO: Handle Geofences button click */ },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(42.dp)
-                                .padding(top = 4.dp)
-                        ) {
-                            Text("Geofences")
-                        }
                     }
                 }
             }
