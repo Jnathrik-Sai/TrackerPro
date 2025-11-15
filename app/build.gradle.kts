@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -61,6 +62,21 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.compose.foundation.layout)
+
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics.ktx)
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.storage.ktx)
+    implementation(libs.firebase.config.ktx)
+    implementation(libs.firebase.inappmessaging.display.ktx)
+    implementation(libs.firebase.database.ktx)
+    implementation(libs.firebase.functions.ktx)
+    implementation(libs.firebase.installations)
+    implementation(libs.firebase.perf.ktx)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

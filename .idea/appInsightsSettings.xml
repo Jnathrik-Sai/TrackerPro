@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.childprotectionsystems.trackerpro" />
+                  <option name="mobileSdkAppId" value="1:271163769744:android:393adb9e10c8992834e915" />
+                  <option name="projectId" value="trackerpro-2f28d" />
+                  <option name="projectNumber" value="271163769744" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
