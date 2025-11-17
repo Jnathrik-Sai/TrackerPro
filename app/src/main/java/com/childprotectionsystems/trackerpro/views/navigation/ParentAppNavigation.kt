@@ -174,9 +174,10 @@ fun ParentAppNavigation() {
                 composable("Home") { HomeFragment(openDrawer = { scope.launch { drawerState.open() } }) }
                 composable("Geofences") { Geofences() }
                 composable("Alerts") { AlertsView() }
-                composable("Settings") { SettingsView() }
+                composable(
+                    "Settings"
+                ) { SettingsView() }
             }
         }
     }
 }
-

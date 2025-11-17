@@ -1,13 +1,22 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
 package com.childprotectionsystems.trackerpro.views.Home
 
+import android.Manifest
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.isGranted
+import androidx.compose.ui.platform.LocalContext
+import android.provider.ContactsContract
+import com.childprotectionsystems.trackerpro.utils.getColorForName
+import com.childprotectionsystems.trackerpro.utils.getInitials
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,15 +27,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.*
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,14 +38,41 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.clickable
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.childprotectionsystems.trackerpro.model.Tracker
+import com.childprotectionsystems.trackerpro.model.Contact
+import com.childprotectionsystems.trackerpro.viewmodels.HomeViewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
 
+import android.content.Intent
+import android.net.Uri
+
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class,
+    ExperimentalPermissionsApi::class
+)
 @Composable
-fun HomeFragment(openDrawer: () -> Unit = {}) {
+fun HomeFragment(
+    openDrawer: () -> Unit = {},
+    viewModel: HomeViewModel = viewModel()
+) {
+    val favorites by viewModel.favorites.collectAsState()
+    val trackers by viewModel.trackers.collectAsState()
+
+    val contactsPermission = rememberPermissionState(Manifest.permission.READ_CONTACTS)
+    val context = LocalContext.current
+
+    LaunchedEffect(contactsPermission.status.isGranted) {
+        if (contactsPermission.status.isGranted) {
+            loadContactsIntoViewModel(context, viewModel)
+        } else {
+            contactsPermission.launchPermissionRequest()
+        }
+    }
+
     val backgroundColor = Color.White
     var showAddTracker by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -72,8 +103,8 @@ fun HomeFragment(openDrawer: () -> Unit = {}) {
                     .padding(16.dp)
                     .animateContentSize(animationSpec = tween(durationMillis = 300))
             ) {
-                FavoritesSection()
-                TrackersSection(onAddTrackerClick = { showAddTracker = true })
+                FavoritesSection(favorites = favorites)
+                TrackersSection(trackers = trackers, onAddTrackerClick = { showAddTracker = true })
             }
         }
 
@@ -91,8 +122,9 @@ fun HomeFragment(openDrawer: () -> Unit = {}) {
 }
 
 @Composable
-fun FavoritesSection() {
+fun FavoritesSection(favorites: List<Contact>) {
     var expanded by remember { mutableStateOf(true) }
+    val context = LocalContext.current
 
     Column {
         Row(
@@ -136,43 +168,71 @@ fun FavoritesSection() {
                     .padding(start = 8.dp, end = 16.dp, top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                repeat(10) { index ->
-                    Box(
-                        modifier = Modifier.size(60.dp),
-                        contentAlignment = Alignment.BottomEnd
+                favorites.forEach { contact ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .padding(bottom = 4.dp)
+                            .clickable {
+                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                    data = Uri.parse("tel:${contact.phone}")
+                                }
+                                context.startActivity(intent)
+                            }
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.LightGray,
-                            modifier = Modifier.matchParentSize()
+                        Box(
+                            modifier = Modifier.size(60.dp),
+                            contentAlignment = Alignment.BottomEnd
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = "U$index",
-                                    color = Color.DarkGray,
-                                    fontSize = 18.sp
+                            if (contact.photoUri != null) {
+                                coil.compose.AsyncImage(
+                                    model = contact.photoUri,
+                                    contentDescription = "Contact Photo",
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .clip(CircleShape)
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .clip(CircleShape)
+                                        .background(getColorForName(contact.name)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = getInitials(contact.name),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 20.sp
+                                    )
+                                }
+                            }
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.White,
+                                tonalElevation = 2.dp,
+                                modifier = Modifier
+                                    .size(15.dp)
+                                    .align(Alignment.BottomEnd)
+                                    .offset(x = (-3).dp, y = (-3).dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Phone,
+                                    contentDescription = "Phone",
+                                    tint = Color(0xFF4CAF50),
+                                    modifier = Modifier
+                                        .padding(2.dp)
+                                        .fillMaxSize()
                                 )
                             }
                         }
-
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.White,
-                            tonalElevation = 2.dp,
-                            modifier = Modifier
-                                .size(15.dp)
-                                .align(Alignment.BottomEnd)
-                                .offset(x = (-3).dp, y = (-3).dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Phone,
-                                contentDescription = "Phone",
-                                tint = Color(0xFF4CAF50),
-                                modifier = Modifier
-                                    .padding(2.dp)
-                                    .fillMaxSize()
-                            )
-                        }
+                        Text(
+                            text = contact.name,
+                            fontSize = 12.sp,
+                            color = Color.Black,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
                     }
                 }
             }
@@ -182,7 +242,7 @@ fun FavoritesSection() {
 
 @Composable
 fun TrackersSection(
-    trackers: List<String> = List(5) { "Tracker ${it + 1}" },
+    trackers: List<Tracker>,
     onAddTrackerClick: () -> Unit
 ) {
     Column(
@@ -213,8 +273,7 @@ fun TrackersSection(
                     .clickable { onAddTrackerClick() }
             ) {
                 Row(
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -235,19 +294,15 @@ fun TrackersSection(
                 .padding(horizontal = 8.dp)
         ) {
             trackers.forEachIndexed { index, tracker ->
-                val shape = when (index) {
-                    0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
-                    trackers.lastIndex -> RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-                    else -> RoundedCornerShape(8.dp)
-                }
+                val shape = RoundedCornerShape(12.dp)
 
                 CardFragment(
                     lineColor = Color.Red,
-                    profileInitials = tracker.take(2).uppercase(),
-                    userName = tracker,
-                    currentLocation = "Current Location",
-                    batteryPercent = 75, // placeholder value
-                    stepsCount = 1234,   // placeholder value
+                    profileInitials = tracker.name.take(2).uppercase(),
+                    userName = tracker.name,
+                    currentLocation = tracker.location,
+                    batteryPercent = tracker.battery,
+                    stepsCount = tracker.steps,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 2.dp)
@@ -308,11 +363,7 @@ fun SearchBar(onMenuClick: () -> Unit = {}) {
                 contentAlignment = Alignment.CenterStart
             ) {
                 if (text.isEmpty()) {
-                    Text(
-                        text = "Search",
-                        color = Color.Gray,
-                        fontSize = 16.sp
-                    )
+                    Text(text = "Search", color = Color.Gray, fontSize = 16.sp)
                 }
                 BasicTextField(
                     value = text,
@@ -323,7 +374,7 @@ fun SearchBar(onMenuClick: () -> Unit = {}) {
                 )
             }
 
-            IconButton(onClick = { /* TODO: mic action */ }) {
+            IconButton(onClick = {}) {
                 Icon(
                     imageVector = Icons.Filled.Mic,
                     contentDescription = "Mic",
@@ -337,5 +388,45 @@ fun SearchBar(onMenuClick: () -> Unit = {}) {
 @Preview
 @Composable
 fun HomeFragmentPreview() {
-    HomeFragment()
+    HomeFragment(openDrawer = {})
+}
+private fun String.trimToDisplayName(): String {
+    val words = this.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
+    return when {
+        words.isEmpty() -> ""
+        words.size == 1 -> words.first()
+        else -> "${words.first()} ${words.last()}"
+    }
+}
+
+fun loadContactsIntoViewModel(context: android.content.Context, viewModel: HomeViewModel) {
+    val resolver = context.contentResolver
+    val cursor = resolver.query(
+        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+        null, null, null, null
+    )
+
+    val contacts = mutableListOf<Contact>()
+
+    cursor?.use {
+        val nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+        val phoneIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+        val photoIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.PHOTO_URI)
+
+        while (cursor.moveToNext()) {
+            val name = cursor.getString(nameIndex) ?: ""
+            val phone = cursor.getString(phoneIndex) ?: ""
+            val photoUri = cursor.getString(photoIndex)
+
+            contacts.add(
+                Contact(
+                    name = name.trimToDisplayName(),
+                    phone = phone,
+                    photoUri = photoUri
+                )
+            )
+        }
+    }
+
+    viewModel.loadLocalFavorites(contacts)
 }

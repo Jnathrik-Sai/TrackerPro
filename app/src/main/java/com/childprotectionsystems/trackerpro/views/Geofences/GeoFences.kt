@@ -1,6 +1,6 @@
 package com.childprotectionsystems.trackerpro.views.Geofences
 
-import com.childprotectionsystems.trackerpro.model.Geofence_new
+import com.childprotectionsystems.trackerpro.model.Geofence
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -487,7 +487,7 @@ fun Geofences() {
                                 }
                             }
 
-                            val newGeofence = Geofence_new(
+                            val newGeofence = Geofence(
                                 name = geofenceName,
                                 radius = geofenceRadius,
                                 tag = geofenceTag,
