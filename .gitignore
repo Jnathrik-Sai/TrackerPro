@@ -13,3 +13,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+/app/google-services.json
+/app/src/main/assets/trackerpro-a7399-firebase-adminsdk-fbsvc-e5f799a3ce.json
